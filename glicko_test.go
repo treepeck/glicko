@@ -2,42 +2,78 @@ package glicko
 
 import "testing"
 
-func TestEvaluatePlayer(t *testing.T) {
+func TestEstimate(t *testing.T) {
+	c := Converter{
+		Rating:    DefaultRating,
+		Deviation: DefaultDeviation,
+		Factor:    DefaultFactor,
+	}
+
 	testcases := []struct {
 		outcomes []Outcome
-		current  Evaluation
-		expected Evaluation
+		input    Strength
+		expected Strength
 	}{
 		{
 			[]Outcome{
-				NewOutcome(1500, 1400, 30, 1),
-				NewOutcome(1500, 1550, 100, 0),
-				NewOutcome(1500, 1700, 300, 0),
+				NewOutcome(c.Rating2Mu(1500), c.Rating2Mu(1400), c.Deviation2Phi(30), 1),
+				NewOutcome(c.Rating2Mu(1500), c.Rating2Mu(1550), c.Deviation2Phi(100), 0),
+				NewOutcome(c.Rating2Mu(1500), c.Rating2Mu(1700), c.Deviation2Phi(300), 0),
 			},
-			Evaluation{Rating: 1500, Deviation: 200, Volatility: 0.06},
-			Evaluation{Rating: 1464.050663079054, Deviation: 151.51653984530088,
-				Volatility: 0.06},
+			Strength{
+				Mu:    c.Rating2Mu(1500),
+				Phi:   c.Deviation2Phi(200),
+				Sigma: 0.06,
+			},
+			Strength{
+				Mu:    -0.20694100961988987,
+				Phi:   0.8721992786306347,
+				Sigma: 0.06,
+			},
 		},
 	}
 
 	for _, tc := range testcases {
-		got := EvaluatePlayer(tc.current, tc.outcomes)
+		e := Estimator{
+			MinMu: c.Rating2Mu(10), MaxMu: c.Rating2Mu(5000),
+			MinPhi: c.Deviation2Phi(50), MaxPhi: c.Deviation2Phi(DefaultDeviation),
+			MinSigma: 0.04, MaxSigma: 0.08, Tau: DefaultTau, Epsilon: DefaultEpsilon,
+		}
 
-		if got != tc.expected {
-			t.Fatalf("expected: %v, got: %v", tc.expected, got)
+		e.Estimate(&tc.input, tc.outcomes)
+
+		if tc.input != tc.expected {
+			t.Fatalf("expected: %v, got: %v", tc.expected, tc.input)
 		}
 	}
 }
 
-func BenchmarkEvaluatePlayer(b *testing.B) {
-	curr := Evaluation{Rating: 1500, Deviation: 200, Volatility: 0.06}
+func BenchmarkEstimate(b *testing.B) {
+	c := Converter{
+		Rating:    DefaultRating,
+		Deviation: DefaultDeviation,
+		Factor:    DefaultFactor,
+	}
+
 	outcomes := []Outcome{
-		NewOutcome(1500, 1400, 30, 1),
-		NewOutcome(1500, 1550, 100, 0),
-		NewOutcome(1500, 1700, 300, 0),
+		NewOutcome(c.Rating2Mu(1500), c.Rating2Mu(1400), c.Deviation2Phi(30), 1),
+		NewOutcome(c.Rating2Mu(1500), c.Rating2Mu(1550), c.Deviation2Phi(100), 0),
+		NewOutcome(c.Rating2Mu(1500), c.Rating2Mu(1700), c.Deviation2Phi(300), 0),
+	}
+
+	s := Strength{
+		Mu:    c.Rating2Mu(1500),
+		Phi:   c.Deviation2Phi(200),
+		Sigma: 0.06,
+	}
+
+	e := Estimator{
+		MinMu: c.Rating2Mu(10), MaxMu: c.Rating2Mu(5000),
+		MinPhi: c.Deviation2Phi(50), MaxPhi: c.Deviation2Phi(DefaultDeviation),
+		MinSigma: 0.04, MaxSigma: 0.08, Tau: DefaultTau, Epsilon: DefaultEpsilon,
 	}
 
 	for b.Loop() {
-		EvaluatePlayer(curr, outcomes)
+		e.Estimate(&s, outcomes)
 	}
 }
