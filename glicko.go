@@ -4,7 +4,7 @@
 //
 // Author: Artem Bielikov artem.bielikov@treepeck.com
 
-// Package glicko implements the player-strength evaluation based on the
+// Package glicko implements the player's strength estimate based on the
 // Glicko-2 rating system.
 //
 // This code names variables and functions according to the conventions used in
@@ -25,21 +25,27 @@
 //   - **delta**: the estimated value of the updated player's mu based on actual
 //     game outcomes.
 //
-// See https://www.glicko.net/glicko/glicko2.pdf for more details.
+// Acknowledgements:
+//   - https://www.glicko.net/glicko/glicko2.pdf
+//   - https://blog.hypersect.com/the-online-skill-ranking-of-inversus-deluxe/
 package glicko
 
-import "math"
+import (
+	"math"
+)
 
 // Recommended values based on the original Glicko-2 paper.
 const (
 	DefaultRating = 1500
 	// This value is also an upper bound, since the system cannot be less
-	// certain about a player's rating than it is for an unrated player.
+	// uncertain about a player's rating than it is for an unrated player.
 	DefaultDeviation  = 350
 	DefaultVolatility = 0.06
-	DefaultTau        = 0.5
+	DefaultTau        = 0.75
 	DefaultFactor     = 173.7178
 	DefaultEpsilon    = 0.000001
+	// Default rating period duration in seconds.
+	DefaultDuration = 60 * 60 * 24 * 7
 )
 
 // Converter performs conversions between the Glicko-2 and traditional
@@ -87,32 +93,30 @@ type Strength struct {
 // rating.  It stores only Glicko-2 scaled values which are used for internal
 // calculations, hence all fields are unexported.
 type Outcome struct {
-	mu    float64
-	phi   float64
-	g     float64
-	e     float64
-	score float64
+	// Enemy's mu.
+	Mu float64
+	// Enemy's phi.
+	Phi float64
+	// Set score to 0 if the player lost the match, 0.5 for a draw, and 1 if
+	// the player won.
+	Score float64
 }
 
-// NewOutcome returns an [Outcome] with the specified parameters.  The score
-// parameter has to be 0 if the player lost, 0.5 for a draw, and 1 if the
-// player won.
-func NewOutcome(mu, enemyMu, enemyPhi, score float64) Outcome {
-	g := 1 / math.Sqrt(1+(3*pow2(enemyPhi)/pow2(math.Pi)))
-	e := 1 / (1 + math.Exp(-g*(mu-enemyMu)))
-
-	return Outcome{
-		mu:    enemyMu,
-		phi:   enemyPhi,
-		g:     g,
-		e:     e,
-		score: score,
-	}
+// Internal helper function.
+func (o Outcome) g() float64 {
+	return 1 / math.Sqrt(1+(3*pow2(o.Phi)/pow2(math.Pi)))
 }
 
-// Estimator performs calculations of the player's strength based on the
-// provided initial [Strength] and match [Outcome].
+// Internal helper function.
+func (o Outcome) e(g, mu float64) float64 {
+	return 1 / (1 + math.Exp(-g*(mu-o.Mu)))
+}
+
+// Estimator performs calculations of the player's strength.
 type Estimator struct {
+	// Rating period duration in seconds.  Use [DefaultDuration] constant for
+	// the recommended value.
+	Duration uint64
 	// Lower bound of the possible mu value.
 	MinPhi float64
 	// Upper bound of the possible mu value.
@@ -133,40 +137,29 @@ type Estimator struct {
 
 // Estimate updates the player's [Strength] by analyzing:
 //   - s: player's [Strength] at the onset of the rating period.
-//   - outcomes: match [Outcome] withing a single rating period.
+//   - o: [Outcome] of a single match withing a single rating period.
+//   - periodFraction: fraction of a rating period that has elapsed since the
+//     last rating update.
 //
-// It's a caller responsilibty to call [Validate] to validate the results.
-func (e Estimator) Estimate(s *Strength, outcomes []Outcome) {
-	// If a player doesn't compete during the rating period, the mu and sigma
-	// remains the same, but the phi increases.
-	if len(outcomes) == 0 {
-		s.Phi = math.Sqrt(pow2(s.Phi) + pow2(s.Sigma))
-		return
-	}
-
-	// Calculate v.
-	v := 0.0
-	for i := range outcomes {
-		v += pow2(outcomes[i].g) * outcomes[i].e * (1 - outcomes[i].e)
-	}
-	v = 1 / v
-
-	// Calculate delta.
-	tmp := 0.0
-	for i := range outcomes {
-		tmp += outcomes[i].g * (outcomes[i].score - outcomes[i].e)
-	}
-	delta := tmp * v
+// The result of this function is validated.
+func (e Estimator) Estimate(s *Strength, o Outcome, periodFraction float64) {
+	// Calculate V and Delta.
+	G := o.g()
+	E := o.e(G, s.Mu)
+	V := 1 / (pow2(G) * E * (1 - E))
+	Delta := V * G * (o.Score - E)
 
 	// Calculate new sigma.
-	s.Sigma = e.sigmaPrime(*s, delta, v)
+	s.Sigma = e.sigmaPrime(*s, Delta, V)
 
 	// Calculate new phi.
-	phiStar := math.Sqrt(pow2(s.Phi) + pow2(s.Sigma))
-	s.Phi = 1 / math.Sqrt(1/pow2(phiStar)+1/v)
+	phiStar := math.Sqrt(pow2(s.Phi) + pow2(s.Sigma)*periodFraction)
+	s.Phi = 1 / math.Sqrt(1/pow2(phiStar)+1/V)
 
 	// Calculate new mu.
-	s.Mu = s.Mu + pow2(s.Phi)*tmp
+	s.Mu = s.Mu + pow2(s.Phi)*(Delta/V)
+
+	e.Validate(s)
 }
 
 // Validate validates the [Srength] by checking if the values satisfy the
@@ -226,13 +219,13 @@ func (e Estimator) sigmaPrime(s Strength, delta, v float64) float64 {
 		B = C
 		fB = fC
 	}
-	return math.Exp(a / 2)
+	return math.Exp(A / 2)
 }
 
 // Internal helper function.
-func (e Estimator) f(phi, v, delta, a, x float64) float64 {
+func (e Estimator) f(delta, phi, v, a, x float64) float64 {
 	exp := math.Exp(x)
-	tmp := pow2(phi) - v - exp
+	tmp := pow2(phi) + v + exp
 	return exp*(pow2(delta)-tmp)/(2*pow2(tmp)) - (x-a)/pow2(e.Tau)
 }
 
