@@ -1,5 +1,5 @@
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
-[![Go Reference](https://pkg.go.dev/badge/github.com/treepeck/chego.svg)](https://pkg.go.dev/github.com/treepeck/chego)
+[![Go Reference](https://pkg.go.dev/badge/github.com/treepeck/glicko.svg)](https://pkg.go.dev/github.com/treepeck/glicko)
 
 Package glicko implements the player's strength estimate based on the Glicko-2<br/>
 rating system.
@@ -19,7 +19,8 @@ into the Estimate function.  As a result, rating, deviation, and volatility<br/>
 evolve smoothly when matches occur at arbitrary moments instead of being<br/>
 grouped into fixed rating periods.
 
-Another notable modification is the introduction of bounds on the player’s rating,<br/>deviation, and volatility.  All system parameters are user-defined, making the<br/>
+Another notable modification is the introduction of bounds on the player's rating,<br/>
+deviation, and volatility.  All system parameters are user-defined, making the<br/>
 system both flexible and safe.
 
 ## Usage
