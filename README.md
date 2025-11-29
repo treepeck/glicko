@@ -7,10 +7,8 @@ rating system.
 Originally designed as an improvement over existing rating systems, Glicko-2 has<br/>
 become a popular choice among game developers.
 
-However, one potential caveat when using the stock Glicko-2 system is that it<br/>
-operates on a collection of games within a `rating period` before applying the<br/>
-rating algorithm.  This is not suitable for most online games, since players<br/>
-often expect their ratings to update immediately after each match.
+One potential caveat when using the stock Glicko-2 system is that it expects<br/>
+a collection of games within a `rating period` to apply the rating algorithm.<br/>
 
 This implementation aims to address that limitation by allowing the player's<br/>
 rating to be estimated sequentially based on individual match outcomes rather<br/>
