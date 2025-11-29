@@ -4,30 +4,23 @@
 //
 // Author: Artem Bielikov artem.bielikov@treepeck.com
 
-// Package glicko implements the player's strength estimate based on the
-// Glicko-2 rating system.
-//
 // This code names variables and functions according to the conventions used in
 // Professor Mark E. Glickman's paper:
-//   - **mu**: the player's strength estimate (rating converted to the Glicko-2
+//   - mu: the player's strength estimate (rating converted to the Glicko-2
 //     scale).
-//   - **phi**: the rating deviation converted to the Glicko-2 scale.  Phi
+//   - phi: the rating deviation converted to the Glicko-2 scale.  Phi
 //     defines the bounds of the 95% confidence interval, where the lower bound
 //     is mu-2*phi, and the upper bound is mu+2*phi.
-//   - **sigma**: the degree of expected fluctuation in a player's rating.  This
+//   - sigma: the degree of expected fluctuation in a player's rating.  This
 //     value is high when a player has erratic performances, and low when the
 //     player performs at a consistent level.
-//   - **tau**: the volatility change constraint.
-//   - **g**: a weighting function that reduces the influence of enemies with
+//   - tau: the volatility change constraint.
+//   - g: a weighting function that reduces the influence of enemies with
 //     high phi values.
-//   - **e**: the expected score against an enemy with the specified mu and phi.
-//   - **v**: the updated player's mu based only on expected game outcomes.
-//   - **delta**: the estimated value of the updated player's mu based on actual
+//   - e: the expected score against an enemy with the specified mu and phi.
+//   - v: the updated player's mu based only on expected game outcomes.
+//   - delta: the estimated value of the updated player's mu based on actual
 //     game outcomes.
-//
-// Acknowledgements:
-//   - https://www.glicko.net/glicko/glicko2.pdf
-//   - https://blog.hypersect.com/the-online-skill-ranking-of-inversus-deluxe/
 package glicko
 
 import (
@@ -37,11 +30,11 @@ import (
 // Recommended values based on the original Glicko-2 paper.
 const (
 	DefaultRating = 1500
-	// This value is also an upper bound, since the system cannot be less
+	// This value can also be an upper bound, since the system cannot be less
 	// uncertain about a player's rating than it is for an unrated player.
 	DefaultDeviation  = 350
 	DefaultVolatility = 0.06
-	DefaultTau        = 0.75
+	DefaultTau        = 0.5
 	DefaultFactor     = 173.7178
 	DefaultEpsilon    = 0.000001
 	// Default rating period duration in seconds.

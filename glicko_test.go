@@ -25,7 +25,7 @@ func TestEstimate(t *testing.T) {
 				Phi:   c.Deviation2Phi(200),
 				Sigma: 0.06,
 			},
-			// Those values slighly (+- 1 rating point) differs from the original
+			// Those values slighly (+- 1 rating point) differ from the original
 			// Glicko-2 example.  This is because implementation processes each
 			// game sequentially and the original algorithm is not linear.
 			// The difference is negligable.
