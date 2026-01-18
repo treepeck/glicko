@@ -37,8 +37,6 @@ const (
 	DefaultTau        = 0.5
 	DefaultFactor     = 173.7178
 	DefaultEpsilon    = 0.000001
-	// Default rating period duration in seconds.
-	DefaultDuration = 60 * 60 * 24 * 7
 )
 
 // Converter performs conversions between the Glicko-2 and traditional
@@ -107,9 +105,6 @@ func (o Outcome) e(g, mu float64) float64 {
 
 // Estimator performs calculations of the player's strength.
 type Estimator struct {
-	// Rating period duration in seconds.  Use [DefaultDuration] constant for
-	// the recommended value.
-	Duration uint64
 	// Lower bound of the possible mu value.
 	MinPhi float64
 	// Upper bound of the possible mu value.
