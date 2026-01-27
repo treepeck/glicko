@@ -1,25 +1,14 @@
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 [![Go Reference](https://pkg.go.dev/badge/github.com/treepeck/glicko.svg)](https://pkg.go.dev/github.com/treepeck/glicko)
 
-Package glicko implements the player's strength estimate based on the Glicko-2<br/>
-rating system.
+Package glicko implements the instant Glicko-2 rating system.
 
-Originally designed as an improvement over existing rating systems, Glicko-2 has<br/>
-become a popular choice among game developers.
+The stock Glicko-2 system expects a collection of games within a `rating period`<br/>
+to apply the rating algorithm.
 
-One potential caveat when using the stock Glicko-2 system is that it expects<br/>
-a collection of games within a `rating period` to apply the rating algorithm.<br/>
-
-This implementation aims to address that limitation by allowing the player's<br/>
-rating to be estimated sequentially based on individual match outcomes rather<br/>
-than in batches.  To achieve this, the periodFraction parameter was introduced<br/>
-into the Estimate function.  As a result, rating, deviation, and volatility<br/>
-evolve smoothly when matches occur at arbitrary moments instead of being<br/>
-grouped into fixed rating periods.
-
-Another notable modification is the introduction of bounds on the player's rating,<br/>
-deviation, and volatility.  All system parameters are user-defined, making the<br/>
-system both flexible and safe.
+This implementation allows the rating to be estimated sequentially based on<br/>
+individual match outcomes rather than in batches. All system parameters are<br/>
+bounded and user-defined, making the system both flexible and safe.
 
 ## Usage
 
