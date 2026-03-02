@@ -80,9 +80,7 @@ type Strength struct {
 	Sigma float64
 }
 
-// Outcome represents a game information used to calculate the new player's
-// rating.  It stores only Glicko-2 scaled values which are used for internal
-// calculations, hence all fields are unexported.
+// Outcome represents a game information used to calculate the new player's rating.
 type Outcome struct {
 	// Enemy's mu.
 	Mu float64
@@ -129,7 +127,7 @@ type Estimator struct {
 //   - periodFraction: fraction of a rating period that has elapsed since the
 //     last rating update.
 //
-// The result of this function is validated.
+// The result of this function is validated using [Validate].
 func (e Estimator) Estimate(s *Strength, o Outcome, periodFraction float64) {
 	// Calculate V and Delta.
 	G := o.g()
@@ -151,7 +149,7 @@ func (e Estimator) Estimate(s *Strength, o Outcome, periodFraction float64) {
 }
 
 // Validate validates the [Srength] by checking if the values satisfy the
-// established limits.
+// defined limits.
 func (e Estimator) Validate(s *Strength) {
 	if s.Mu < e.MinMu {
 		s.Mu = e.MinMu
